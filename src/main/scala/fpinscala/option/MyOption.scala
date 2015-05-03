@@ -8,6 +8,8 @@ sealed trait MyOption[+A]  {
 
   def isEmpty: Boolean
 
+  def isDefined: Boolean
+
   def map[B](f: A => B): MyOption[B] =
     if (isEmpty) MyNone else MySome(f(get))
 
@@ -35,6 +37,8 @@ case object MyNone extends MyOption[Nothing] {
 
   def isEmpty = true
 
+  def isDefined = false
+
 }
 
 case class MySome[+A](x: A) extends MyOption[A] {
@@ -42,6 +46,8 @@ case class MySome[+A](x: A) extends MyOption[A] {
   def get = x
 
   def isEmpty = false
+
+  def isDefined = true
 }
 
 object MyOption {
