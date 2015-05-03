@@ -2,7 +2,10 @@ package fpinscala.testing
 
 import fpinscala.option.MySome
 import fpinscala.collection.stream.MyStream
-import fpinscala.state.{ RNG, State }
+import fpinscala.pallarelism.blocking.Par
+import fpinscala.pallarelism.blocking.Par
+import fpinscala.pallarelism.blocking.Par.Par
+import fpinscala.state.RNG
 import fpinscala.testing.Prop._
 
 import scala.util.Try
@@ -48,6 +51,9 @@ object Prop {
   def check(p: => Boolean): Prop = Prop { (_, _, _) =>
     if (p) Passed else Falsified("()", 0)
   }
+
+  def equal[A](p: Par[A], p2: Par[A]): Par[Boolean] =
+    Par.map2(p,p2)(_ == _)
 
   def run(p: Prop, maxSize: Int = 100, testCases: Int = 100, rng: RNG = RNG.SimpleRNG(System.currentTimeMillis)): Unit =
     p.run(maxSize, testCases, rng) match {
