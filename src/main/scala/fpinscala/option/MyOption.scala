@@ -1,5 +1,7 @@
 package fpinscala.option
 
+import fpinscala.collection.list.{MyNil, MyList}
+
 sealed trait MyOption[+A]  {
 
   def get: A
@@ -22,8 +24,8 @@ sealed trait MyOption[+A]  {
   def orElse[B >: A](elseValue: => MyOption[B]): MyOption[B] =
     map(MySome(_)).getOrElse(elseValue)
 
-  //def toList: MyList[A] =
-  //  if (isEmpty) MyNil else MyList(get)
+  def toList: MyList[A] =
+    if (isEmpty) MyNil else MyList(get)
 
 }
 
