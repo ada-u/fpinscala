@@ -1,6 +1,6 @@
 package fpinscala.testing
 
-import fpinscala.collection.list.MyList
+import fpinscala.collection.list.{MyCons, MyList}
 import fpinscala.state.{State, RNG}
 
 case class Gen[+A](sample: State[RNG, A]) {
@@ -57,8 +57,19 @@ object Gen {
   }
 
   def stringN(n: Int): Gen[String] =
-    listOfN(n, choose(0,127)).map(_.map(_.toChar).mkString)
+    listOfN(n, choose(0, 127)).map(_.map(_.toChar).mkString)
 
   val string: SGen[String] = SGen(stringN)
+
+  val whitespaceChar: Gen[Char] =
+    listOf1(Gen.union(choose(9, 10), unit(32)))(1).map(_.head.toChar)
+
+  val nonWhitespaceChar: Gen[Char] =
+    choose(33, 127).map(_.toChar)
+
+  def textN(n: Int): Gen[String] =
+    listOfN(n, weighted(whitespaceChar -> 0.1, nonWhitespaceChar -> 0.9)).map(_.mkString)
+
+  val text: SGen[String] = SGen(textN)
 
 }

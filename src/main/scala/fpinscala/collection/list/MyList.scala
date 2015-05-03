@@ -3,8 +3,11 @@ package fpinscala.collection.list
 import fpinscala.option.{MySome, MyNone, MyOption}
 
 import scala.annotation.tailrec
+import scala.language.implicitConversions
 
 sealed trait MyList[+A] {
+
+  def head: A
 
   def isEmpty: Boolean
 
@@ -113,6 +116,8 @@ sealed trait MyList[+A] {
 }
 
 case object MyNil extends MyList[Nothing] {
+
+  def head = throw new NoSuchElementException
 
   def isEmpty: Boolean = true
 
