@@ -94,6 +94,37 @@ object Monoid {
 
   }
 
+  def productMonoid[A, B](a: Monoid[A], b: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
+
+    override def op(x: (A, B), y: (A, B)): (A, B) =
+      (a.op(x._1, y._1), b.op(x._2, y._2))
+
+    override def zero: (A, B) =
+      (a.zero, b.zero)
+
+  }
+
+  def mapMergeMonoid[K, V](v: Monoid[V]): Monoid[Map[K, V]] = new Monoid[Map[K, V]] {
+
+    override def op(a: Map[K, V], b: Map[K, V]): Map[K, V] =
+      (a.keySet ++ b.keySet).foldLeft(zero) { (acc, k) =>
+        acc.updated(k, v.op(a.getOrElse(k, v.zero), b.getOrElse(k, v.zero)))
+      }
+
+    override def zero: Map[K, V] = Map[K, V]().empty
+
+  }
+
+  def functionMonoid[A, B](b: Monoid[B]): Monoid[A => B] = new Monoid[(A) => B] {
+
+    override def op(f: A => B, g: A => B): A => B =
+      a => b.op(f(a), g(a))
+
+    override def zero: A => B =
+      a => b.zero
+    
+  }
+
   def dual[A](monoid: Monoid[A]) = new Monoid[A] {
 
     override def op(x: A, y: A): A =

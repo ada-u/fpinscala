@@ -28,6 +28,13 @@ object Par {
   def map[A, B](pa: Par[A])(f: A => B): Par[B] =
     map2(pa, unit())((a, _) => f(a))
 
+  def flatMap[A, B](pa: Par[A])(choices: A => Par[B]): Par[B] =
+    es => {
+      val k = run(es)(pa).get
+      run(es)(choices(k))
+    }
+
+
   /**
    * 7.5 map2の初期実装
    *
@@ -78,4 +85,9 @@ object Par {
   def asyncF[A, B](f: A => B): A => Par[B] = {
     a => lazyUnit(f(a))
   }
+
+  implicit def toParOps[A](p: Par[A]): ParOps[A] = new ParOps(p)
+
+  class ParOps[A](p: Par[A])
+
 }
