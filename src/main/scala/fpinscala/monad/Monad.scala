@@ -89,19 +89,16 @@ object Monad {
 
   }
 
-  val parserMonad = new Monad[Parsers] {
-
-    override def unit[A](a: => A): Parsers[A] = ???
-
-    override def flatMap[A, B](ma: Parsers[A])(f: (A) => Parsers[B]): Parsers[B] = ???
-
+  def parserMonad[P[+_]](p: Parsers[P]) = new Monad[P] {
+    def unit[A](a: => A) = p.succeed(a)
+    override def flatMap[A,B](ma: P[A])(f: A => P[B]) = p.flatMap(ma)(f)
   }
 
   def stateMonad[S] = new Monad[({type lambda[x] = State[S, x]})#lambda] {
 
     override def unit[A](a: => A): State[S, A] = State.unit(a)
 
-    override def flatMap[A, B](ma: State[S, A])(f: (A) => State[S, B]): State[S, B] = ma.flatMap(f)
+    override def flatMap[A, B](ma: State[S, A])(f: A => State[S, B]): State[S, B] = ma.flatMap(f)
 
   }
 

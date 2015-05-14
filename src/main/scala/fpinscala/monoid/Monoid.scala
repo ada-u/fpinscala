@@ -18,7 +18,7 @@ trait Monoid[A] {
 
 object Monoid {
 
-  val stringMonoid = new Monoid[String] {
+  implicit val stringMonoid = new Monoid[String] {
 
     override def op(a1: String, a2: String): String =
       a1 + a2
@@ -38,7 +38,7 @@ object Monoid {
 
   }
 
-  val intAddition: Monoid[Int] = new Monoid[Int] {
+  implicit val intAddition: Monoid[Int] = new Monoid[Int] {
 
     override def op(a1: Int, a2: Int): Int =
       a1 + a2
