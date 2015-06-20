@@ -30,10 +30,34 @@ trait Monad[F[_]] extends Applicative[F] {
   def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
     a => flatMap(f(a))(g)
 
+  def forever[A, B](a: F[A]): F[B] = {
+    lazy val t: F[B] = forever(a)
+    a.flatMap(_ => t)
+  }
+
   def filterM[A](la: MyList[A])(f: A => F[Boolean]): F[MyList[A]] =
     la.foldRight(unit(MyList.empty[A]))((x, y) =>
       compose(f, (b: Boolean) => if (b) map2(unit(x),y)(_ :: _) else y)(x)
     )
+
+  implicit def toMonadic[A](a: F[A]): Monadic[F, A] =
+    new Monadic[F, A] {
+      val F = Monad.this
+      def get = a
+    }
+}
+
+trait Monadic[F[_], A] {
+
+  val F: Monad[F]
+
+  def get: F[A]
+
+  private val a = get
+
+  def map[B](f: A => B): F[B] = F.map(a)(f)
+
+  def flatMap[B](f: A => F[B]): F[B] = F.flatMap(a)(f)
 }
 
 object Monad {

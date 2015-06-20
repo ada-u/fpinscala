@@ -21,8 +21,6 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
     override def flatMap[A, B](a: A)(f: A => B): B = f(a)
   }
 
-  def map[A, B](fa: F[A])(f: A => B): F[B] = {
-    val reuslt: Id[F[B]] = traverse[Id, A, B](fa)(f)(idMonad)
-
-  }
+  def map[A, B](fa: F[A])(f: A => B): F[B] =
+    traverse[Id, A, B](fa)(f)(idMonad)
 }
