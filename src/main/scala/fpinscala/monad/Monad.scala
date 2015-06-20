@@ -1,7 +1,9 @@
 package fpinscala.monad
 
+import fpinscala.applicative.Applicative
 import fpinscala.collection.list.MyList
 import fpinscala.collection.stream.MyStream
+import fpinscala.either.{MyLeft, MyRight, MyEither}
 import fpinscala.option.{MySome, MyOption}
 import fpinscala.pallarelism.blocking.Par
 import fpinscala.pallarelism.blocking.Par.Par
@@ -9,9 +11,7 @@ import fpinscala.parser.Parsers
 import fpinscala.state.State
 import fpinscala.testing.Gen
 
-trait Monad[F[_]] extends Functor[F] {
-
-  def unit[A](a: => A): F[A]
+trait Monad[F[_]] extends Applicative[F] {
 
   def join[A](mma: F[F[A]]): F[A] =
     flatMap(mma)(identity)
@@ -21,7 +21,7 @@ trait Monad[F[_]] extends Functor[F] {
   def flatMapViaCompose[A, B](ma: F[A])(f: A => F[B]): F[B] =
     compose ((_: Unit) => ma, f)()
 
-  def map[A, B](ma: F[A])(f: A => B): F[B] =
+  override def map[A, B](ma: F[A])(f: A => B): F[B] =
     flatMap(ma)(a => unit(f(a)))
 
   def map2[A, B, C](ma: F[A], mb: F[B])(f: (A, B) => C): F[C] =
@@ -30,21 +30,10 @@ trait Monad[F[_]] extends Functor[F] {
   def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
     a => flatMap(f(a))(g)
 
-  def sequence[A](lma: MyList[F[A]]): F[MyList[A]] =
-    lma.foldRight(unit(MyList.empty[A]))((ma, mla) => map2(ma, mla)(_ :: _))
-
-  def traverse[A, B](la: MyList[A])(f: A => F[B]): F[MyList[B]] =
-    sequence(la.map(f))
-
-  def replicateM[A](n: Int, ma: F[A]): F[MyList[A]] =
-    sequence(MyList.fill(n)(ma))
-
   def filterM[A](la: MyList[A])(f: A => F[Boolean]): F[MyList[A]] =
     la.foldRight(unit(MyList.empty[A]))((x, y) =>
       compose(f, (b: Boolean) => if (b) map2(unit(x),y)(_ :: _) else y)(x)
     )
-
-
 }
 
 object Monad {
@@ -100,6 +89,17 @@ object Monad {
 
     override def flatMap[A, B](ma: State[S, A])(f: A => State[S, B]): State[S, B] = ma.flatMap(f)
 
+  }
+
+  def eitherMonad[E] = new Monad[({type f[x] = MyEither[E, x]})#f] {
+
+    override def flatMap[A, B](ma: MyEither[E, A])(f: (A) => MyEither[E, B]): MyEither[E, B] = ma match {
+      case MyRight(a) => f(a)
+      case left@MyLeft(_) => left
+    }
+
+    override def unit[A](a: => A): MyEither[E, A] =
+      MyRight(a)
   }
 
 
