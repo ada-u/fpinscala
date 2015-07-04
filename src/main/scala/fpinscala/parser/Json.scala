@@ -18,20 +18,20 @@ object Json {
       escapedQuoted ** (":" *> jsValue)
 
     def jsObject: Parser[Json] =
-      surround("{", "}")(jsKeyValue.separate(",").map( kvs => JsObject(kvs.toMap))).scope("JsObject")
+      surround("{", "}")(jsKeyValue.separate(",").map(kvs => JsObject(kvs.toMap))).scope("JsObject")
 
     def jsArray: Parser[Json] =
       surround("[", "]")(jsValue.separate(",").map(vs => JsArray(vs.toIndexSeq))).scope("JsArray")
 
     def jsLiteral: Parser[Json] = {
       "true".as(JsBoolean(get = true))    | // true
-        "false".as(JsBoolean(get = false))| // false
-        "null".as(JsNull)                 | // null
-        double.map(JsNumber)              | // 27.5
-        escapedQuoted.map(JsString)         // "string"
+      "false".as(JsBoolean(get = false))| // false
+      "null".as(JsNull)                 | // null
+      double.map(JsNumber)              | // 27.5
+      escapedQuoted.map(JsString)         // "string"
     }
 
-    def jsValue: Parser[Json] = jsObject | jsArray | jsLiteral
+    def jsValue: Parser[Json] = jsLiteral | jsObject | jsArray
 
     root(whiteSpace *> (jsObject | jsArray))
   }

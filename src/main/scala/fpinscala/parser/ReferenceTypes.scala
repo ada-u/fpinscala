@@ -12,8 +12,8 @@ object ReferenceTypes {
   trait Result[+A] {
 
     def extract: MyEither[ParseError,A] = this match {
-      case Failure(e,_) => MyLeft(e)
-      case Success(a,_) => MyRight(a)
+      case Failure(e, _) => MyLeft(e)
+      case Success(a, _) => MyRight(a)
     }
 
     def uncommit: Result[A] = this match {
@@ -28,6 +28,7 @@ object ReferenceTypes {
 
     def advanceSuccess(n: Int): Result[A] = this match {
       case Success(a, m) => Success(a, n + m)
+      case _ => this
     }
 
     def mapError(f: ParseError => ParseError): Result[A] = this match {
@@ -39,15 +40,14 @@ object ReferenceTypes {
   case class Success[+A](get: A, charsConsumed: Int) extends Result[A]
   case class Failure(get: ParseError, isCommitted: Boolean) extends Result[Nothing]
 
-
   def firstNonmatchingIndex(s1: String, s2: String, offset: Int): Int = {
     var i = 0
     while (i < s1.length && i < s2.length) {
       if (s1.charAt(i+offset) != s2.charAt(i)) return i
       i += 1
     }
-    if (s1.length-offset >= s2.length) -1
-    else s1.length-offset
+    if (s1.length - offset >= s2.length) -1
+    else s1.length - offset
   }
 
 }
