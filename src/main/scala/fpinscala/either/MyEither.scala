@@ -17,6 +17,11 @@ trait MyEither[+E, +A] {
   def map2[EE >: E, B, C](b: MyEither[EE, B])(f: (A, B) => C): MyEither[EE, C] =
     for { a <- this ; b1 <- b } yield f(a, b1)
 
+  def fold[X](fe: E => X, fa: A => X) = this match {
+    case MyLeft(a) => fe(a)
+    case MyRight(b) => fa(b)
+  }
+
 }
 
 case class MyLeft[+E](value: E) extends MyEither[E, Nothing]

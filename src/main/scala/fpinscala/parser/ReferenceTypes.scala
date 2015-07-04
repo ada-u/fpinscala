@@ -11,7 +11,7 @@ object ReferenceTypes {
 
   trait Result[+A] {
 
-    def extract: MyEither[ParseError,A] = this match {
+    def extract: MyEither[ParseError, A] = this match {
       case Failure(e, _) => MyLeft(e)
       case Success(a, _) => MyRight(a)
     }
@@ -58,10 +58,10 @@ object Reference extends Parsers[Parser] {
   def string(w: String): Parser[String] =
     s => {
       val i = firstNonmatchingIndex(s.input, w, s.offset)
-      if (s.input.startsWith(w))
+      if (i == -1)
         Success(w, w.length)
       else
-        Failure(s.advanceBy(i).toError("Expected: " + s), i != 0)
+        Failure(s.advanceBy(i).toError("Expected: " + "'" + s + "'"), i != 0)
     }
 
   def regex(r: Regex): Parser[String] = {

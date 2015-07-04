@@ -143,6 +143,9 @@ sealed trait MyList[+A] { self =>
   def mkString: String =
     mkString("")
 
+  override final def toString: String =
+    mkString
+
 }
 
 case object MyNil extends MyList[Nothing] {
