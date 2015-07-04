@@ -2,17 +2,17 @@ package fpinscala.parser
 
 import fpinscala.collection.list.MyList
 import fpinscala.either.{MyLeft, MyRight}
-import fpinscala.parser.{ Reference => R }
 import org.scalatest.{DiagrammedAssertions, FlatSpec}
 
 class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
 
   import ReferenceTypes._
-  import Reference._
 
-  val R = Reference
+  val R: Parsers[Parser] = Reference.asInstanceOf[Parsers[Parser]]
 
-  val spaces = many(string(" "))
+  import R._
+
+  val spaces = " ".many
 
   "firstNonmatchingIndex" should "return the first index where the two strings differed" in {
     assert(firstNonmatchingIndex("hello", "ello", 0) === 0)
@@ -24,12 +24,12 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
   }
 
   "string" should "succeed parse a string" in {
-    val MyRight(result) = R.run(string("hello"))("hello")
+    val MyRight(result) = R.run("hello")("hello")
     assert(result == "hello")
   }
 
   "`p | q`" should "succeed if `p` succeed or `q` succeed" in {
-    val parser = or(string("hello"), string("world"))
+    val parser = "hello" or "world"
     val MyRight(hello) = R.run(parser)("hello")
     val MyRight(world) = R.run(parser)("world")
     assert(hello === "hello")
@@ -37,7 +37,7 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
   }
 
   "`p | q`" should "fail if `p` fail and `q` fail" in {
-    val parser = or(string("hello"), string("world"))
+    val parser = "hello" or "world"
     val MyLeft(pr) = R.run(parser)("hard")
     val MyLeft(qr) = R.run(parser)("work")
     assert(pr.latestLocation.get.offset === 1)
@@ -46,7 +46,7 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
 
   "p.flatMap(q)" should "return a result depend on result p" in {
     val parser = regex("[0-9]".r).flatMap { n =>
-      string("a" * n.toInt)
+      "a" * n.toInt
     }
     val MyRight(result) = R.run(parser)("4aaaa")
     assert(result === "aaaa")
@@ -59,17 +59,17 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
   }
 
   "`p ** q`" should "product " in {
-    val parser = product(spaces, string("abra"))
+    val parser = spaces ** "abra"
     val MyRight(result) = R.run(parser)("   abra")
     assert(result === MyList.fill(3)(" ") -> "abra")
   }
 
   "`p(scope(a)) or q(scope(b))`" should "report a if it fail" in {
     val p = scope("magic spell") {
-      string("abra") product spaces product string("cadabra")
+      "abra" ** spaces ** "cadabra"
     }
     val q = scope("gibberish") {
-      string("abra") product spaces product string("babba")
+      "abra" ** spaces ** "babba"
     }
     val MyLeft(result) = Reference.run(p or q)("abra cAdabra")
     assert(result.stack.map(_._2).exists(_ == "magic spell") && ! result.stack.map(_._2).exists(_ == "gibberish"))
@@ -77,10 +77,10 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
 
   "`attemp(p(scope(a))) or q(scope(b))`" should "report b if it fail" in {
     val p = scope("magic spell") {
-      string("abra") product spaces product string("cadabra")
+      "abra" ** spaces ** "cadabra"
     }
     val q = scope("gibberish") {
-      string("abra") product spaces product string("babba")
+      "abra" ** spaces ** "babba"
     }
     val MyLeft(result) = Reference.run(attempt(p) or q)("abra cAdabra")
     assert(result.stack.map(_._2).exists(_ == "gibberish"))
