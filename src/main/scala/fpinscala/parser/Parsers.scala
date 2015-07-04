@@ -63,8 +63,7 @@ trait Parsers[Parser[+_]] { self =>
   def double: Parser[Double] =
     doubleString.map(_.toDouble)
 
-  def succeed[A](a: A): Parser[A] =
-    string("").map(_ => a)
+  def succeed[A](a: A): Parser[A]
 
   def slice[A](p: Parser[A]): Parser[String]
 
@@ -87,7 +86,7 @@ trait Parsers[Parser[+_]] { self =>
   def many[A](p: Parser[A]): Parser[MyList[A]] =
     map2(p, many(p))(_ :: _) or succeed(MyList.empty[A])
 
-  def many1[A](p: Parser[A]): Parser[MyList[A]]
+  //def many1[A](p: Parser[A]): Parser[MyList[A]]
 
   def eof: Parser[String] =
     regex("\\z".r)

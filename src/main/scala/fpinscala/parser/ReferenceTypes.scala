@@ -1,7 +1,7 @@
 package fpinscala.parser
 
 import ReferenceTypes._
-import fpinscala.either.{MyRight, MyLeft, MyEither}
+import fpinscala.either.{ MyRight, MyLeft, MyEither }
 import fpinscala.collection.list.MyList
 import scala.util.matching.Regex
 
@@ -72,9 +72,10 @@ object Reference extends Parsers[Parser] {
     }
   }
 
-  override def flatMap[A, B](f: Parser[A])(g: (A) => Parser[B]): Parser[B] =
+  override def flatMap[A, B](f: Parser[A])(g: A => Parser[B]): Parser[B] =
     s => f(s) match {
-      case Success(a, n) => g(a)(s.advanceBy(n))
+      case Success(a, n) =>
+        g(a)(s.advanceBy(n))
         .addCommit(n != 0)
         .advanceSuccess(n)
       case f@Failure(_, _) => f
@@ -86,7 +87,18 @@ object Reference extends Parsers[Parser] {
       case r => r
     }
 
-  override def many1[A](p: Parser[A]): Parser[MyList[A]] = ???
+  override final def many[A](p: Parser[A]): Parser[MyList[A]] =
+    s => {
+      def go(acc: MyList[A], p: Parser[A], offset: Int): Result[MyList[A]] = {
+        p(s.advanceBy(offset)) match {
+          case Success(a, n) =>
+            go(a :: acc, p, offset + n)
+          case f@Failure(e,true) => f
+          case Failure(e,_) => Success(acc, offset)
+        }
+      }
+      go(MyList.empty[A], p, 0)
+    }
 
   override def slice[A](p: Parser[A]): Parser[String] =
     s => p(s) match {
@@ -94,6 +106,9 @@ object Reference extends Parsers[Parser] {
         Success(s.input.substring(s.column, s.column + n), s.column + n)
       case f@Failure(_, _) => f
     }
+
+  def succeed[A](a: A): Parser[A] =
+    s => Success(a, 0)
 
   override def label[A](message: String)(p: Parser[A]): Parser[A] =
     s => p(s).mapError(_.label(message))
