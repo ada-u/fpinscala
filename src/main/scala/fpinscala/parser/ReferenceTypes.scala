@@ -61,7 +61,7 @@ object Reference extends Parsers[Parser] {
       if (i == -1)
         Success(w, w.length)
       else
-        Failure(s.advanceBy(i).toError("Expected: " + "'" + s + "'"), i != 0)
+        Failure(s.advanceBy(i).toError("Expected: " + "'" + w + "'"), i != 0)
     }
 
   def regex(r: Regex): Parser[String] = {

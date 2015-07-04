@@ -12,6 +12,8 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
 
   val R = Reference
 
+  val spaces = many(string(" "))
+
   "firstNonmatchingIndex" should "return the first index where the two strings differed" in {
     assert(firstNonmatchingIndex("hello", "ello", 0) === 0)
     assert(firstNonmatchingIndex("hello", "hollo", 0) === 1)
@@ -57,11 +59,31 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
   }
 
   "`p ** q`" should "product " in {
-    //val spaces = many(string(" "))
-    val spaces = string("   ")
     val parser = product(spaces, string("abra"))
     val MyRight(result) = R.run(parser)("   abra")
-    assert(result === "   " -> "abra")
+    assert(result === MyList.fill(3)(" ") -> "abra")
+  }
+
+  "`p(scope(a)) or q(scope(b))`" should "report a if it fail" in {
+    val p = scope("magic spell") {
+      string("abra") product spaces product string("cadabra")
+    }
+    val q = scope("gibberish") {
+      string("abra") product spaces product string("babba")
+    }
+    val MyLeft(result) = Reference.run(p or q)("abra cAdabra")
+    assert(result.stack.map(_._2).exists(_ == "magic spell"))
+  }
+
+  "`attemp(p(scope(a))) or q(scope(b))`" should "report b if it fail" in {
+    val p = scope("magic spell") {
+      string("abra") product spaces product string("cadabra")
+    }
+    val q = scope("gibberish") {
+      string("abra") product spaces product string("babba")
+    }
+    val MyLeft(result) = Reference.run(attempt(p) or q)("abra cAdabra")
+    assert(result.stack.map(_._2).exists(_ == "gibberish"))
   }
 
 }
