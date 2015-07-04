@@ -72,7 +72,7 @@ class ParserReferenceSpec extends FlatSpec with DiagrammedAssertions {
       string("abra") product spaces product string("babba")
     }
     val MyLeft(result) = Reference.run(p or q)("abra cAdabra")
-    assert(result.stack.map(_._2).exists(_ == "magic spell"))
+    assert(result.stack.map(_._2).exists(_ == "magic spell") && ! result.stack.map(_._2).exists(_ == "gibberish"))
   }
 
   "`attemp(p(scope(a))) or q(scope(b))`" should "report b if it fail" in {

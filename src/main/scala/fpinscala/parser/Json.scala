@@ -25,9 +25,9 @@ object Json {
 
     def jsLiteral: Parser[Json] = {
       "true".as(JsBoolean(get = true))    | // true
-      "false".as(JsBoolean(get = false))| // false
-      "null".as(JsNull)                 | // null
-      double.map(JsNumber)              | // 27.5
+      "false".as(JsBoolean(get = false))  | // false
+      "null".as(JsNull)                   | // null
+      double.map(JsNumber)                | // 27.5
       escapedQuoted.map(JsString)         // "string"
     }
 

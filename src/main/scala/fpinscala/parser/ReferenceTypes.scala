@@ -87,14 +87,17 @@ object Reference extends Parsers[Parser] {
       case r => r
     }
 
+  override def attempt[A](p: Parser[A]): Parser[A] =
+    s => p(s).uncommit
+
   override final def many[A](p: Parser[A]): Parser[MyList[A]] =
     s => {
       def go(acc: MyList[A], p: Parser[A], offset: Int): Result[MyList[A]] = {
         p(s.advanceBy(offset)) match {
           case Success(a, n) =>
             go(a :: acc, p, offset + n)
-          case f@Failure(e,true) => f
-          case Failure(e,_) => Success(acc, offset)
+          case f@Failure(e, true) => f
+          case Failure(e, _) => Success(acc, offset)
         }
       }
       go(MyList.empty[A], p, 0)
@@ -119,6 +122,4 @@ object Reference extends Parsers[Parser] {
   override def run[A](p: Parser[A])(input: String): MyEither[ParseError, A] =
     p(Location(input)).extract
 
-  override def attempt[A](p: Parser[A]): Parser[A] =
-    s => p(s).uncommit
 }
