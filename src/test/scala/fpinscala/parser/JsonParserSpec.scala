@@ -8,7 +8,7 @@ import scala.language.higherKinds
 
 class JsonParserSpec extends FlatSpec with DiagrammedAssertions {
 
-  def printResult[E](e: MyEither[E, ((String, MyList[String]), String)]) =
+  def printResult[E](e: MyEither[E, Json]) =
     e.fold(println, println)
 
   val parser = Json.jsonParser(Reference)

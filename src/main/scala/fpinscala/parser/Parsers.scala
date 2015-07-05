@@ -56,7 +56,7 @@ trait Parsers[Parser[+_]] { self =>
     string("\"") *> through("\"").map(_.dropRight(1))
 
   def escapedQuoted: Parser[String] =
-    token(quoted)
+    token(quoted label "string literal")
 
   private def doubleString: Parser[String] =
     token("[-+]?([0-9]*\\.)?[0-9]+([eE][-+]?[0-9]+)?".r)

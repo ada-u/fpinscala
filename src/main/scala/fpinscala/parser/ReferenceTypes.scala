@@ -7,7 +7,20 @@ import scala.util.matching.Regex
 
 object ReferenceTypes {
 
-  type Parser[+A] = Location => Result[A]
+  type Parser[+A] = ParseState => Result[A]
+
+  case class ParseState(location: Location) {
+
+    def advanceBy(numChars: Int): ParseState =
+      copy(location = location.copy(offset = location.offset + numChars))
+
+    def input: String =
+      location.input.substring(location.offset)
+
+    def slice(n: Int) =
+      location.input.substring(location.offset, location.offset + n)
+
+  }
 
   trait Result[+A] {
 
@@ -57,17 +70,17 @@ object Reference extends Parsers[Parser] {
 
   def string(w: String): Parser[String] =
     s => {
-      val i = firstNonmatchingIndex(s.input, w, s.offset)
+      val i = firstNonmatchingIndex(s.input, w, s.location.offset)
       if (i == -1)
         Success(w, w.length)
       else
-        Failure(s.advanceBy(i).toError("Expected: " + "'" + w + "'"), i != 0)
+        Failure(s.advanceBy(i).location.toError("Expected: " + "'" + w + "'"), i != 0)
     }
 
   def regex(r: Regex): Parser[String] = {
     val message = "regex " + r
     s => r.findPrefixOf(s.input) match {
-      case None => Failure(s.toError(message), isCommitted = false)
+      case None => Failure(s.location.toError(message), isCommitted = false)
       case Some(m) => Success(m, m.length)
     }
   }
@@ -106,7 +119,7 @@ object Reference extends Parsers[Parser] {
   override def slice[A](p: Parser[A]): Parser[String] =
     s => p(s) match {
       case Success(_, n) =>
-        Success(s.input.substring(s.column, s.column + n), s.column + n)
+        Success(s.input.substring(s.location.column, s.location.column + n), s.location.column + n)
       case f@Failure(_, _) => f
     }
 
@@ -117,9 +130,9 @@ object Reference extends Parsers[Parser] {
     s => p(s).mapError(_.label(message))
 
   override def scope[A](message: String)(p: Parser[A]): Parser[A] =
-    s => p(s).mapError(_.push(s, message))
+    s => p(s).mapError(_.push(s.location, message))
 
   override def run[A](p: Parser[A])(input: String): MyEither[ParseError, A] =
-    p(Location(input)).extract
+    p(ParseState(Location(input))).extract
 
 }
