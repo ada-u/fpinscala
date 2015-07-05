@@ -12,26 +12,28 @@ case class JsObject(get: Map[String, Json]) extends Json
 object Json {
 
   def jsonParser[Parser[+_]](P: Parsers[Parser]): Parser[Json] = {
-    import P._
+    import P.{ string => _, _ }
 
-    def jsKeyValue: Parser[(String, Json)] =
+    implicit def tok(s: String): Parser[String] = token(P.string(s))
+
+    def jsKeyValue =
       escapedQuoted ** (":" *> jsValue)
 
     def jsObject: Parser[Json] =
       surround("{", "}")(jsKeyValue.separate(",").map(kvs => JsObject(kvs.toMap))).scope("JsObject")
 
     def jsArray: Parser[Json] =
-      surround("[", "]")(jsValue.separate(",").map(vs => JsArray(vs.toIndexSeq))).scope("JsArray")
+      surround("[", "]")(jsValue.separate(",").map(vs => JsArray(vs.toIndexedSeq))).scope("JsArray")
 
-    def jsLiteral: Parser[Json] = {
-      "true".as(JsBoolean(get = true))    | // true
-      "false".as(JsBoolean(get = false))  | // false
+    def jsLiteral: Parser[Json] = scope("literal") {
       "null".as(JsNull)                   | // null
       double.map(JsNumber)                | // 27.5
-      escapedQuoted.map(JsString)         // "string"
+      escapedQuoted.map(JsString)         | // "string"
+      "true".as(JsBoolean(get = true))    | // true
+      "false".as(JsBoolean(get = false))    // false
     }
 
-    def jsValue: Parser[Json] = jsLiteral | jsObject | jsArray
+    def jsValue: Parser[Json] = jsLiteral | jsObject
 
     root(whiteSpace *> (jsObject | jsArray))
   }

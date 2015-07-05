@@ -11,27 +11,14 @@ class JsonParserSpec extends FlatSpec with DiagrammedAssertions {
   def printResult[E](e: MyEither[E, ((String, MyList[String]), String)]) =
     e.fold(println, println)
 
-  def magicSpellParser[Parser[+_]](P: Parsers[Parser]): Parser[((String, MyList[String]), String)] = {
+  val parser = Json.jsonParser(Reference)
 
-    import P._
-
-    val spaces = " ".many
-    val p1 = scope("magic spell") {
-      "abra" ** spaces ** "cadabra"
+    "JsLiteral" should "parser a `true` literal" in {
+      val json = "{ \"key\": true }"
+      val MyRight(result) = Reference.run(parser)(json)
+      assert(result === JsObject(Map("key" -> JsBoolean(get = true))))
     }
-    val p2 = scope("gibberish") {
-      "abba" ** spaces ** "babba"
-    }
-
-    p1 or p2
-  }
-
-  val msParser = magicSpellParser(Reference)
-
-  printResult(Reference.run(msParser)("abra cAdabra"))
-  printResult(Reference.run(msParser)("abra cadabra"))
-
-
+/*
   "JsonParser" should "parse JSON object" in {
     val json = """
 {
@@ -42,5 +29,5 @@ class JsonParserSpec extends FlatSpec with DiagrammedAssertions {
     val parser = Json.jsonParser(Reference)
     val MyRight(result) = Reference.run(parser)(json)
     assert(result === JsObject(Map("key" -> JsString("value"))))
-  }
+  }*/
 }

@@ -126,8 +126,8 @@ sealed trait MyList[+A] { self =>
   def foldRightViaFoldLeft[B](z: B)(f: (A, B) => B): B =
     foldLeft((b: B) => b)((g, a) => b => g(f(a, b)))(z)
 
-  def toIndexSeq: IndexedSeq[A] =
-    foldLeft(IndexedSeq.empty[A])(_.+:(_))
+  def toIndexedSeq: IndexedSeq[A] =
+    foldLeft(IndexedSeq.empty[A])(_ :+ _)
 
   def lastOption: MyOption[A] = this.reverse match {
     case MyNil => MyNone

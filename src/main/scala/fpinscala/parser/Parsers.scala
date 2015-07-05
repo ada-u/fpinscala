@@ -23,8 +23,6 @@ trait Parsers[Parser[+_]] { self =>
 
   def run[A](p: Parser[A])(input: String): MyEither[ParseError, A]
 
-  // def scope[A](message: String)(p: Parser[A]): Parser[A]
-
   def attempt[A](p: Parser[A]): Parser[A]
 
   def skipLeft[B](p: Parser[Any], p2: => Parser[B]): Parser[B] =
@@ -43,7 +41,10 @@ trait Parsers[Parser[+_]] { self =>
     start *> p <* stop
 
   def separate[A](p: Parser[A], p2: Parser[Any]): Parser[MyList[A]] =
-    map2(p, many(p2 *> p))(_ :: _) or succeed(MyList.empty[A])
+    separate1(p, p2) or succeed(MyList.empty[A])
+
+  def separate1[A](p: Parser[A], p2: Parser[Any]): Parser[MyList[A]] =
+    map2(p, many(p2 *> p))(_ :: _)
 
   def char(c: Char): Parser[Char] =
     string(c.toString).map(_.charAt(0))
@@ -99,12 +100,12 @@ trait Parsers[Parser[+_]] { self =>
   def scope[A](message: String)(p: Parser[A]): Parser[A]
 
   case class ParserOps[A](p: Parser[A]) {
-    def token: Parser[A] = self.token(p)
     def *>[B](p2: => Parser[B]) = self.skipLeft(p, p2)
     def <*(p2: => Parser[Any]) = self.skipRight(p, p2)
     def **[B](p2: => Parser[B]) = self.product(p, p2)
     def |[B >: A](p2: Parser[B]): Parser[B] = self.or(p, p2)
     def or[B >: A](p2: => Parser[B]): Parser[B] = self.or(p, p2)
+    def token = self.token(p)
     def separate(separator: Parser[Any]): Parser[MyList[A]] = self.separate(p, separator)
     def slice: Parser[String] = self.slice(p)
     def map[B](f: A => B): Parser[B] = self.map(p)(f)
@@ -113,7 +114,6 @@ trait Parsers[Parser[+_]] { self =>
     def label(message: String): Parser[A] = self.label(message)(p)
     def scope(message: String): Parser[A] = self.scope(message)(p)
     def product[B](p2: => Parser[B]) = self.product(p, p2)
-    // def scope(message: String): Parser[A] = self.scope(message)(p)
     def as[B](b: B): Parser[B] = self.map(self.slice(p))(_ => b)
   }
 
