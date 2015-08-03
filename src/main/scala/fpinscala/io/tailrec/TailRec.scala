@@ -23,7 +23,7 @@ object TailRec extends Monad[TailRec] {
   def unit[A](a: => A): TailRec[A] =
     tailrec.Return(a)
 
-  def flatMap[A,B](a: TailRec[A])(f: A => TailRec[B]): TailRec[B] =
+  def flatMap[A, B](a: TailRec[A])(f: A => TailRec[B]): TailRec[B] =
     a.flatMap(f)
 
 }
@@ -33,8 +33,19 @@ object Sandbox {
   def printLine(msg: String): TailRec[Unit] =
     Suspend(() => println(msg))
 
-  val p = TailRec.forever(printLine("Still going..."))
-  run(p)
+  //val p = TailRec.forever(printLine("Still going..."))
+  //run(p)
+
+  println(
+    run(
+      FlatMap(
+        FlatMap(
+          Return(10), (x: Int) => Return(x * 10)
+        ),
+        (y: Int) => Return(y * 2)
+      )
+    )
+  )
 
   @tailrec
   def run[A](t: TailRec[A]): A = t match {

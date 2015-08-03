@@ -27,8 +27,9 @@ object Sandbox {
     case _ => async
   }
 
+  /*
   def run[A](async: Async[A]): Par[A] = step(async) match {
     case Return(a) => Par.unit(a)
 
-  }
+  }*/
 }
