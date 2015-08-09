@@ -39,6 +39,16 @@ object Nonblocking {
       }
     }
 
+    def delay[A](a: => A): Par[A] =
+      es => new Future[A] {
+        def apply(cb: A => Unit): Unit =
+          cb(a)
+      }
+
+    def async[A](f: (A => Unit) => Unit): Par[A] = es => new Future[A] {
+      private[pallarelism] def apply(k: (A) => Unit): Unit = f(k)
+    }
+
     def fork[A](a: => Par[A]): Par[A] = {
       es => new Future[A] {
         def apply(cb: A => Unit): Unit =
@@ -70,7 +80,7 @@ object Nonblocking {
         }
       }
 
-    def asyncF[A,B](f: A => B): A => Par[B] =
+    def asyncF[A, B](f: A => B): A => Par[B] =
       a => lazyUnit(f(a))
 
     def parMap[A,B](as: IndexedSeq[A])(f: A => B): Par[IndexedSeq[B]] =
@@ -106,7 +116,6 @@ object Nonblocking {
 
     def sequence[A](as: List[Par[A]]): Par[List[A]] =
       map(sequenceBalanced(as.toIndexedSeq))(_.toList)
-
 
     def lazyUnit[A](a: => A): Par[A] =
       fork(unit(a))

@@ -24,6 +24,8 @@ object Free {
   type Async[A] = Free[Par, A]
   type IO[A] = Free[Par, A]
 
+  def IO[A](a: => A): IO[A] = Suspend[Par, A](Par.delay(a))
+
   trait Translate[F[_], G[_]] {
 
     def apply[A](f: F[A]): G[A]
@@ -38,7 +40,6 @@ object Free {
       def apply[A](fa: F[A]): FG[A] = Suspend(fg(fa))
     })(freeMonad[G])
   }
-
 
   def freeMonad[F[_]]: Monad[({type f[a] = Free[F, a]})#f] = new Monad[({type f[a] = Free[F, a]})#f] {
 
@@ -81,11 +82,5 @@ object Free {
     case FlatMap(Return(x), f) => step(f(x))
     case _ => a
   }
-
-  /*
-    def freeMonad[F[_]] = {
-      type λ[a] = ???
-    }
-    */
 
 }
