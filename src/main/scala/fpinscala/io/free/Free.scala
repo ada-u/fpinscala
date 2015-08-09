@@ -32,6 +32,14 @@ object Free {
 
   type ~>[F[_], G[_]] = Translate[F, G]
 
+  def translate[F[_], G[_], A](f: Free[F, A])(fg: F ~> G): Free[G, A] = {
+    type FG[A] = Free[G, A]
+    runFree(f)(new (F ~> FG) {
+      def apply[A](fa: F[A]): FG[A] = Suspend(fg(fa))
+    })(freeMonad[G])
+  }
+
+
   def freeMonad[F[_]]: Monad[({type f[a] = Free[F, a]})#f] = new Monad[({type f[a] = Free[F, a]})#f] {
 
     def flatMap[A, B](ma: Free[F, A])(f: A => Free[F, B]): Free[F, B] =
@@ -54,11 +62,18 @@ object Free {
     }
   }
 
-  def run[F[_], A](fa: Free[F, A])(implicit F: Monad[F]): F[A] = step(fa) match {
+  def run[F[_], A](free: Free[F, A])(implicit F: Monad[F]): F[A] = step(free) match {
     case Return(a) => F.unit(a)
     case Suspend(r) => r
     case FlatMap(Suspend(r), f) => F.flatMap(r)(a => run(f(a)))
     case _ => sys.error("Impossible, since `step` eliminates these cases")
+  }
+
+  def runFree[F[_], G[_], A](free: Free[F, A])(t: F ~> G)(implicit G: Monad[G]): G[A] = step(free) match {
+    case Return(a) => G.unit(a)
+    case Suspend(r) => t(r)
+    case FlatMap(Suspend(r), f) => G.flatMap(t(r))(a => runFree(f(a))(t))
+    case _ => sys.error("Impossible; `step` eliminates these cases")
   }
 
   def step[F[_], A](a: Free[F, A]): Free[F, A] = a match {
