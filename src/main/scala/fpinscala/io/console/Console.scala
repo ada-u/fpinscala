@@ -37,6 +37,9 @@ case object ReadLine extends Console[Option[String]] {
 
   def run: Option[String] = Try(readLine()).toOption
 
+  def toReader: ConsoleReader[Option[String]] = ???
+
+  def toState: ConsoleState[Option[String]] = ???
 }
 
 case class PrintLine(line: String) extends Console[Unit] {
@@ -45,6 +48,9 @@ case class PrintLine(line: String) extends Console[Unit] {
 
   def toThunk: () => Unit = () => println(line)
 
+  def toReader: ConsoleReader[Unit] = ???
+
+  def toState: ConsoleState[Unit] = ???
 }
 
 case class ConsoleReader[A](run: String => A) {

@@ -1,5 +1,7 @@
 package fpinscala.io.console
 
+import java.util.concurrent.Executors
+
 import fpinscala.io.free.Free
 import fpinscala.io.free.Free._
 import fpinscala.monad.Monad
@@ -43,6 +45,12 @@ object ConsoleApplicationSample {
     _ <- Console.printLn("I can only interact with the console")
     ln <- Console.readLn
   } yield ln
+
+  def runApp: Option[String] = {
+    //runConsole(app)
+    //runConsoleFunction0(app)()
+    Par.run(Executors.newCachedThreadPool)(runConsolePar(app))
+  }
 
   // ---
 
