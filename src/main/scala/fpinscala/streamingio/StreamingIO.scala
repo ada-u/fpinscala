@@ -93,7 +93,7 @@ object Process {
   }
 
   def await[I, O](f: I => Process[I, O],
-                  fallback: Process[I, O] = Halt[I, O]()) = Await {
+                  fallback: Process[I, O] = Halt[I, O]()) = Await[I, O] {
     case Some(i) => f(i)
     case None => fallback
   }
@@ -115,9 +115,6 @@ object Process {
       case Emit(h,t) => Emit(h, feed(oa)(t))
       case Await(recv) => recv(oa)
     }
-
-  def exists[I](f: I => Boolean): Process[I, Boolean] =
-    lift(f) |> any
 
   def any: Process[Boolean, Boolean] =
     loop(false)((b: Boolean, s) => (s || b, s || b))
