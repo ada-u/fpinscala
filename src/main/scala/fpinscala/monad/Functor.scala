@@ -1,7 +1,8 @@
 package fpinscala.monad
 
 import fpinscala.collection.list.MyList
-import fpinscala.either.{MyRight, MyLeft, MyEither}
+import fpinscala.either.{MyEither, MyLeft, MyRight}
+import fpinscala.streamingio.Process
 
 trait Functor[F[_]] {
 
@@ -24,4 +25,8 @@ object Functor {
       as.map(f)
   }
 
+  def processFunctor[I] = new Functor[({type lambda[o] = Process[I, o]})#lambda] {
+    def map[A, B](fa: Process[I, A])(f: (A) => B): Process[I, B] =
+      fa.map(f)
+  }
 }
