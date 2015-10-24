@@ -47,8 +47,6 @@ object ConsoleApplicationSample {
   } yield ln
 
   def runApp: Option[String] = {
-    //runConsole(app)
-    //runConsoleFunction0(app)()
     Par.run(Executors.newCachedThreadPool)(runConsolePar(app))
   }
 

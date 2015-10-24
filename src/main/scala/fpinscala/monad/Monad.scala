@@ -7,9 +7,11 @@ import fpinscala.either.{MyEither, MyLeft, MyRight}
 import fpinscala.option.{MyOption, MySome}
 import fpinscala.pallarelism.blocking.Par
 import fpinscala.pallarelism.blocking.Par.Par
+import fpinscala.pallarelism.nonblocking.Nonblocking.{ Par => NBPar }
+
 import fpinscala.parser.Parsers
 import fpinscala.state.State
-import fpinscala.streamingio._
+import fpinscala.streamingio.SimpleStreamTransducer._
 import fpinscala.testing.Gen
 
 trait Monad[F[_]] extends Applicative[F] {
@@ -80,6 +82,14 @@ object Monad {
 
   }
 
+  val nbParMonad = new Monad[NBPar] {
+
+    override def unit[A](a: => A): NBPar[A] = NBPar.unit(a)
+
+    override def flatMap[A, B](ma: NBPar[A])(f: A => NBPar[B]): NBPar[B] = ma.flatMap(f)
+
+  }
+
   val listMonad = new Monad[MyList] {
 
     override def unit[A](a: => A): MyList[A] = MyList(a)
@@ -145,5 +155,12 @@ object Monad {
         ma.flatMap(f)
 
     }
+
+}
+
+trait MonadCatch[F[_]] extends Monad[F] {
+
+  def attempt[A](a: F[A]): F[Either[Throwable, A]]
+  def fail[A](t: Throwable): F[A]
 
 }

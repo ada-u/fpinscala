@@ -6,6 +6,7 @@ import fpinscala.option.{ MySome, MyNone, MyOption }
 
 import scala.annotation.tailrec
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 sealed trait MyList[+A] { self =>
 
@@ -127,7 +128,13 @@ sealed trait MyList[+A] { self =>
     foldLeft((b: B) => b)((g, a) => b => g(f(a, b)))(z)
 
   def toIndexedSeq: IndexedSeq[A] =
-    foldLeft(IndexedSeq.empty[A])(_ :+ _)
+    foldRight(IndexedSeq.empty[A])(_ +: _)
+
+  def toArray[B >: A : ClassTag]: Array[B] =
+    foldRight(Array.empty[B])(_ +: _)
+
+  def toList: List[A] =
+    foldRight(List.empty[A])(_ :: _)
 
   def lastOption: MyOption[A] = this.reverse match {
     case MyNil => MyNone

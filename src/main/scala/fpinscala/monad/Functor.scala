@@ -2,7 +2,7 @@ package fpinscala.monad
 
 import fpinscala.collection.list.MyList
 import fpinscala.either.{MyEither, MyLeft, MyRight}
-import fpinscala.streamingio.Process
+import fpinscala.streamingio.SimpleStreamTransducer.Process
 
 trait Functor[F[_]] {
 

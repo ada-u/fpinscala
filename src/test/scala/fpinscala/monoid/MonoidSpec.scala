@@ -26,4 +26,10 @@ class MonoidSpec extends FlatSpec with DiagrammedAssertions {
     Prop.run(Monoid.monoidLaws[MyList[Int]](Monoid.listMonoid[Int], Gen.listOf(Gen.choose(-100, 100)).forSize(10)))
   }
 
+  "ToMonoidOp" should "inject a MonoidOp" in {
+    import Monoid.intAddition
+    import ToMonoidOps._
+    assert((1 |+| 1) === 2)
+  }
+
 }

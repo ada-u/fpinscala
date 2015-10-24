@@ -2,6 +2,9 @@ package fpinscala.io.free
 
 import fpinscala.monad.Monad
 import fpinscala.pallarelism.nonblocking.Nonblocking.Par
+import java.util.concurrent.ExecutorService
+
+import scala.collection.mutable
 
 sealed trait Free[F[_], A] {
 
@@ -25,6 +28,11 @@ object Free {
   type IO[A] = Free[Par, A]
 
   def IO[A](a: => A): IO[A] = Suspend[Par, A](Par.delay(a))
+
+  def unsafePerformIO[A](io: IO[A])(implicit E: ExecutorService): A =
+    Par.run(E) {
+      run(io)(Monad.nbParMonad)
+    }
 
   trait Translate[F[_], G[_]] {
 
