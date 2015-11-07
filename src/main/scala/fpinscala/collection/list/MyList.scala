@@ -51,7 +51,7 @@ sealed trait MyList[+A] { self =>
     reduceLeft((x, y) => if (cmp.lteq(x, y)) x else y)
 
   def sum[B >: A](implicit monoid: Monoid[B]): B =
-    foldRight(monoid.zero)(monoid.op)
+    foldRight(monoid.zero)(monoid.append)
 
   @tailrec
   final def exists(p: A => Boolean): Boolean = this match {

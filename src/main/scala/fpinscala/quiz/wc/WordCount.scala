@@ -10,7 +10,7 @@ object WordCount {
 
   val wordCountMonoid: Monoid[WordCount] = new Monoid[WordCount] {
 
-    override def op(a1: WordCount, a2: WordCount): WordCount = (a1, a2) match {
+    override def append(a1: WordCount, a2: WordCount): WordCount = (a1, a2) match {
       case (Stub(s1), Stub(s2)) => Stub(s1 + s2)
       case (Stub(s), Part(l, w, r)) => Part(s + l, w, r)
       case (Part(l, w, r), Stub(s)) => Part(l, w, r + s)

@@ -1,6 +1,7 @@
 package fpinscala.monoid
 
 import scala.language.implicitConversions
+import scalaz.syntax.ToSemigroupOps
 
 trait MonoidOps[A] {
 
@@ -8,11 +9,11 @@ trait MonoidOps[A] {
 
   val value: A
 
-  def |+|(a2: A): A = F.op(value, a2)
+  def |+|(a2: A): A = F.append(value, a2)
 
 }
 
-object ToMonoidOps {
+object ToMonoidOps extends ToSemigroupOps {
 
   implicit def toMonoidOps[A: Monoid](a: A): MonoidOps[A] = new MonoidOps[A] {
     val value: A = a

@@ -19,6 +19,15 @@ object CanTruthy {
     case _ => true
   })
 
+  implicit def listCanTruthy[A]: CanTruthy[List[A]] = CanTruthy.truthys({
+    case Nil => false
+    case _   => true
+  })
+
+  implicit val nilCanTruthy: CanTruthy[Nil.type] = CanTruthy.truthys(_ => false)
+
+  implicit val booleanTruthy: CanTruthy[Boolean] =CanTruthy.truthys(identity)
+
 }
 
 trait CanTruthyOps[A] {

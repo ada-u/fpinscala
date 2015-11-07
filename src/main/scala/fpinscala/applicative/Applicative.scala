@@ -5,6 +5,8 @@ import fpinscala.collection.stream.MyStream
 import fpinscala.monad.Functor
 import fpinscala.option.MyOption
 
+import scala.language.higherKinds
+
 trait Applicative[F[_]] extends Functor[F] {
 
   def apply[A, B](fab: F[A => B])(fa: F[A]): F[B] =
