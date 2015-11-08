@@ -10,9 +10,11 @@ trait ComposeOps[F[_, _], A, B] {
 
   val self: F[A, B]
 
-  final def <<<[C](x: F[C, A]): F[C, B] = F.compose(self, x)
+  final def <<<[C](x: F[C, A]): F[C, B] =
+    F.compose(self, x)
 
-  final def >>>[C](x: F[B, C]): F[A, C] = F.compose(x, self)
+  final def >>>[C](x: F[B, C]): F[A, C] =
+    F.compose(x, self)
 
 }
 

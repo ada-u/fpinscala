@@ -1,3 +1,4 @@
+import fpinscala.category.instance.ComposeInstance._
 import fpinscala.collection.stream.MyStream
 import fpinscala.option.{ MyNone, MySome }
 import fpinscala.streamingio.SimpleStreamTransducer
@@ -34,13 +35,33 @@ object Main extends App {
     val f = (_: Int) + 1
     val g = (_: Int) * 100
     import fpinscala.category.instance.ComposeInstance._
-    function1Instance.syntax.ToComposeOps(f).<<<(g)(2)
+    function1Instance.composeSyntax.ToComposeOps(f).<<<(g)(2)
     import fpinscala.category.syntax.ToComposeOps._
     println((f >>> g)(2))
     println((f <<< g)(2))
   }
 
+  def ZSplit: Unit = {
+    val f = (_: Int) + 1
+    val g = (_: Int) * 100
+
+    import scalaz.Scalaz._
+    println((f -*- g)(1, 2))
+  }
+
+  def MySplit: Unit = {
+    val f = (_: Int) + 1
+    val g = (_: Int) * 100
+    import fpinscala.category.instance.SplitInstance._
+    function1Instance.splitSyntax.ToSplitOps(f).-*-(g)(1, 2)
+    import fpinscala.category.syntax.ToSplitOps._
+    println((f -*- g)(1, 2))
+  }
+
   ZCompose
   MyCompose
+
+  ZSplit
+  MySplit
 
 }
