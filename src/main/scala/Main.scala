@@ -30,7 +30,17 @@ object Main extends App {
     println((f <<< g)(2))
   }
 
-  ZCompose
+  def MyCompose: Unit = {
+    val f = (_: Int) + 1
+    val g = (_: Int) * 100
+    import fpinscala.category.instance.ComposeInstance._
+    function1Instance.syntax.ToComposeOps(f).<<<(g)(2)
+    import fpinscala.category.syntax.ToComposeOps._
+    println((f >>> g)(2))
+    println((f <<< g)(2))
+  }
 
+  ZCompose
+  MyCompose
 
 }
