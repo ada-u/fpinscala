@@ -4,6 +4,8 @@ import fpinscala.collection.list.MyList
 import fpinscala.either.{MyEither, MyLeft, MyRight}
 import fpinscala.streamingio.SimpleStreamTransducer.Process
 
+import scala.language.higherKinds
+
 trait Functor[F[_]] {
 
   def map[A, B](fa: F[A])(f: A => B): F[B]
