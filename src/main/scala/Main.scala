@@ -1,3 +1,8 @@
+import java.util.concurrent.Executors
+
+import fpinscala.collection.stream.MyStream
+import fpinscala.state.State
+
 import scala.language.higherKinds
 import scalaz.Applicative
 
@@ -73,5 +78,12 @@ object Main extends App {
 
   ZSplit
   MySplit
+
+  println("---------------------")
+  println(MyStream(1, 2, 3, 4).takeWhile(_ < 2).toList)
+  println(MyStream(1,2,3,4).headOption)
+
+  val es = Executors.newFixedThreadPool(1)
+
 
 }

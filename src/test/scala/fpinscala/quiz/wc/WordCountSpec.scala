@@ -10,10 +10,12 @@ class WordCountSpec extends FlatSpec with DiagrammedAssertions {
     Prop.run {
       val stubGen = Gen.string.map(Stub)(10)
       val partGen = for {
-        l <- Gen.string(10)
-        w <- Gen.choose(0, 100)
-        r <- Gen.string(10)
-      } yield Part(l, w, r)
+        n <- Gen.smallPositiveInt
+        s <- Gen.string(n)
+        m <- Gen.smallPositiveInt.map(_ + n)
+        l <- Gen.choose(0, m)
+        r <- Gen.string(l)
+      } yield Part(s, l, r)
       Monoid.monoidLaws[WordCount](WordCount.wordCountMonoid,  Gen.union(stubGen, partGen))
     }
   }

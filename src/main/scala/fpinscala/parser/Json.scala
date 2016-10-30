@@ -1,5 +1,7 @@
 package fpinscala.parser
 
+import scala.language.{higherKinds, implicitConversions}
+
 sealed trait Json
 
 case object JsNull extends Json

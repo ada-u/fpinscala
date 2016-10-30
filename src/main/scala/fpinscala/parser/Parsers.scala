@@ -7,7 +7,7 @@ import fpinscala.collection.list.MyList
 import fpinscala.testing._
 import fpinscala.testing.Prop._
 
-import scala.language.higherKinds
+import scala.language.{ higherKinds, implicitConversions }
 import scala.util.matching.Regex
 
 trait Parsers[Parser[+_]] { self =>

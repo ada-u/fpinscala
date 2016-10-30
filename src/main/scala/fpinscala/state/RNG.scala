@@ -36,14 +36,14 @@ object RNG {
 
   val positiveInt: Rand[Int] = State(_.positiveInt)
 
-  val double: Rand[Double] = positiveInt.map(n => (n.toDouble - 1) / Int.MaxValue)
+  val double: Rand[Double] = positiveInt.map(n => (n - 1).toDouble / Int.MaxValue)
 
   val boolean: Rand[Boolean] = int.map(n => if (n % 2 == 0) true else false)
 
   def nonNegativeInt: Rand[Int] =
-    int.map { i => if (i < 0) -(i + 1) else i }
+    int.map { i => if (i < 0) - (i + 1) else i }
 
-  def both[A, B](ra: Rand[A], rb: Rand[B]): Rand[(A,B)] =
+  def both[A, B](ra: Rand[A], rb: Rand[B]): Rand[(A, B)] =
     ra.map2(rb)((_, _))
 
   def intDouble: Rand[(Int, Double)] =

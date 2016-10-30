@@ -3,7 +3,6 @@ package fpinscala.testing
 import fpinscala.option.MySome
 import fpinscala.collection.stream.MyStream
 import fpinscala.pallarelism.blocking.Par
-import fpinscala.pallarelism.blocking.Par
 import fpinscala.pallarelism.blocking.Par.Par
 import fpinscala.state.RNG
 import fpinscala.testing.Prop._
@@ -53,7 +52,7 @@ object Prop {
   }
 
   def equal[A](p: Par[A], p2: Par[A]): Par[Boolean] =
-    Par.map2(p,p2)(_ == _)
+    Par.map2(p, p2)(_ == _)
 
   def run(p: Prop, maxSize: Int = 100, testCases: Int = 100, rng: RNG = RNG.SimpleRNG(System.currentTimeMillis)): Unit =
     p.run(maxSize, testCases, rng) match {
@@ -80,7 +79,6 @@ object Prop {
 
   def forAll[A](g: Int => Gen[A])(f: A => Boolean): Prop = Prop {
     (max, n, rng) =>
-      // 最低1つ以上のケースを用意する
       val casePerSize = (n + (max - 1)) / max
       val props: MyStream[Prop] = MyStream.from(0).take(n.min(max) + 1).map(i => forAll(g(i))(f))
       val prop: Prop = props.map(p => Prop {

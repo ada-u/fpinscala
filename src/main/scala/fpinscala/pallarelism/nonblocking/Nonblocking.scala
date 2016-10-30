@@ -104,6 +104,15 @@ object Nonblocking {
           p(es)(a => f(a)(es)(cb))
       }
 
+    def join[A](ppa: Par[Par[A]]): Par[A] =
+      es => new Future[A] {
+        def apply(cb: A => Unit): Unit = {
+          ppa(es)(fpa => eval(es) {
+            fpa(es)(cb)
+          })
+        }
+      }
+
     // note: Par[List[A]]を明示的に渡してあげないと、map2がPar[B]の型を解釈できない
     def sequenceBalanced[A](as: IndexedSeq[Par[A]]): Par[IndexedSeq[A]] = fork {
       if (as.isEmpty) unit(Vector())

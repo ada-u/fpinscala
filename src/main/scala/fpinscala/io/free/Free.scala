@@ -4,7 +4,7 @@ import fpinscala.monad.Monad
 import fpinscala.pallarelism.nonblocking.Nonblocking.Par
 import java.util.concurrent.ExecutorService
 
-import scala.collection.mutable
+import scala.language.higherKinds
 
 sealed trait Free[F[_], A] {
 

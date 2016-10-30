@@ -10,7 +10,6 @@ case class SGen[+A](forSize: Int => Gen[A]) {
   def flatMap[B](f: A => Gen[B]): SGen[B] =
     SGen(forSize.andThen(_.flatMap(f)))
 
-  /*
   def **[B](s2: SGen[B]): SGen[(A,B)] =
-    SGen(n => apply(n) ** s2(n))*/
+    SGen(n => apply(n) ** s2(n))
 }

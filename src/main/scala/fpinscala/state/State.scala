@@ -35,6 +35,10 @@ object State {
   def unit[S, A](a: A): State[S, A] =
     State(s => (a, s))
 
+  def get[S]: State[S, S] = State(s => (s, s))
+
+  def set[S](s: S): State[S, Unit] = State(_ => ((), s))
+
   def sequence[S, A](sas: MyList[State[S, A]]): State[S, MyList[A]] =
     sas.foldRight(unit[S, MyList[A]](MyList[A]()))((f, acc) => f.map2(acc)(_ :: _))
 

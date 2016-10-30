@@ -14,6 +14,8 @@ import fpinscala.state.State
 import fpinscala.streamingio.SimpleStreamTransducer._
 import fpinscala.testing.Gen
 
+import scala.language.{ higherKinds, implicitConversions }
+
 trait Monad[F[_]] extends Applicative[F] {
 
   def join[A](mma: F[F[A]]): F[A] =

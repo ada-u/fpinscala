@@ -53,6 +53,17 @@ sealed trait MyList[+A] { self =>
   def sum[B >: A](implicit monoid: Monoid[B]): B =
     foldRight(monoid.zero)(monoid.append)
 
+  def takeWhile(p: A => Boolean): MyList[A] = this match {
+    case MyCons(h, t) if p(h) => MyCons(h, t.takeWhile(p))
+    case _ => MyNil
+  }
+
+  def forall(p: A => Boolean): Boolean = this match {
+    case MyNil => false
+    case MyCons(x ,xs) if !p(x) => false
+    case MyCons(x, xs) => xs.forall(p)
+  }
+
   @tailrec
   final def exists(p: A => Boolean): Boolean = this match {
     case MyNil => false
