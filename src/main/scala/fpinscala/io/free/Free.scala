@@ -1,18 +1,20 @@
 package fpinscala.io.free
 
+import java.util.concurrent.ExecutorService
+
+import fpinscala.io.console.Console
 import fpinscala.monad.Monad
 import fpinscala.pallarelism.nonblocking.Nonblocking.Par
-import java.util.concurrent.ExecutorService
 
 import scala.language.higherKinds
 
 sealed trait Free[F[_], A] {
 
-  def flatMap[B](f: A => Free[F, B]): Free[F, B] =
-    FlatMap(this, f)
-
   def map[B](f: A => B): Free[F, B] =
     flatMap(f andThen (Return(_)))
+
+  def flatMap[B](f: A => Free[F, B]): Free[F, B] =
+    FlatMap(this, f)
 }
 
 case class Return[F[_], A](a: A) extends Free[F, A]
@@ -26,6 +28,7 @@ object Free {
   type TailRec[A] = Free[Function0, A]
   type Async[A] = Free[Par, A]
   type IO[A] = Free[Par, A]
+  type ~>[F[_], G[_]] = Translate[F, G]
 
   def IO[A](a: => A): IO[A] = Suspend[Par, A](Par.delay(a))
 
@@ -34,16 +37,9 @@ object Free {
       run(io)(Monad.nbParMonad)
     }
 
-  trait Translate[F[_], G[_]] {
-
-    def apply[A](f: F[A]): G[A]
-
-  }
-
-  type ~>[F[_], G[_]] = Translate[F, G]
-
   def translate[F[_], G[_], A](f: Free[F, A])(fg: F ~> G): Free[G, A] = {
     type FG[A] = Free[G, A]
+    // Free[Function0, A]の中身にアクセスするには、runFreeをする必要がある
     runFree(f)(new (F ~> FG) {
       def apply[A](fa: F[A]): FG[A] = Suspend(fg(fa))
     })(freeMonad[G])
@@ -90,5 +86,66 @@ object Free {
     case FlatMap(Return(x), f) => step(f(x))
     case _ => a
   }
+
+  def runConsole[A](a: Free[Console, A]): A =
+    runTrampoline(translate(a)(new (Console ~> Function0) {
+      def apply[A](f: Console[A]): () => A = f.toThunk
+    }))
+
+  trait Translate[F[_], G[_]] {
+
+    def apply[A](f: F[A]): G[A]
+
+  }
+
+}
+
+trait Files[A]
+
+trait HandleR
+
+trait HandleW
+
+case class OpenRead(file: String) extends Files[HandleR]
+
+case class OpenWrite(file: String) extends Files[HandleW]
+
+case class ReadLine(h: HandleR) extends Files[Option[String]]
+
+case class WriteLine(h: HandleW, line: String) extends Files[Unit]
+
+object Files {
+
+  import Free._
+
+  val filesToPar: (Files ~> Par) = new (Files ~> Par) {
+    def apply[A](f: Files[A]): Par[A] = ???
+  }
+  val lines = List(71, 82, 73, 74, 76, 78, 79, 80)
+  val cs = movingAvg(3)(lines.map(s => fahrenheitToCelsius(s.toDouble))).map(_.toString)
+
+  def fahrenheitToCelsius(f: Double): Double = (f - 32) * 5.0 / 9.0
+
+  def loop(f: HandleR, c: HandleW): Free[Files, Unit] =
+    for {
+      line <- Suspend(ReadLine(f))
+      _ <- line match {
+        case None => Return[Files, Unit](())
+        case Some(s) =>
+          Suspend[Files, Unit] {
+            WriteLine(c, fahrenheitToCelsius(s.toDouble).toString)
+          } flatMap (_ => loop(f, c))
+
+       //   FlatMap[Files, Unit, Unit](Suspend[Files, Unit](WriteLine(c, fahrenheitToCelsius(s.toDouble).toString)), (_) => loop(f, c))
+      }
+    } yield ()
+
+  def convertFiles = for {
+    f <- Suspend(OpenRead("fahrenheit.txt"))
+    c <- Suspend(OpenWrite("celsius.txt"))
+    _ <- loop(f, c)
+  } yield ()
+
+  def movingAvg(n: Int)(l: List[Double]): List[Double] = ???
 
 }

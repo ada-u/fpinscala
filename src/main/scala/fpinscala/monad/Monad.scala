@@ -7,14 +7,14 @@ import fpinscala.either.{MyEither, MyLeft, MyRight}
 import fpinscala.option.{MyOption, MySome}
 import fpinscala.pallarelism.blocking.Par
 import fpinscala.pallarelism.blocking.Par.Par
-import fpinscala.pallarelism.nonblocking.Nonblocking.{ Par => NBPar }
-
+import fpinscala.pallarelism.nonblocking.Nonblocking.{Par => NBPar}
 import fpinscala.parser.Parsers
 import fpinscala.state.State
 import fpinscala.streamingio.SimpleStreamTransducer._
 import fpinscala.testing.Gen
+import fpinscala.traverse.Traverse
 
-import scala.language.{ higherKinds, implicitConversions }
+import scala.language.{higherKinds, implicitConversions}
 
 trait Monad[F[_]] extends Applicative[F] {
 
@@ -26,15 +26,6 @@ trait Monad[F[_]] extends Applicative[F] {
   def flatMapViaCompose[A, B](ma: F[A])(f: A => F[B]): F[B] =
     compose((_: Unit) => ma, f)()
 
-  override def map[A, B](ma: F[A])(f: A => B): F[B] =
-    flatMap(ma)(a => unit(f(a)))
-
-  def map2[A, B, C](ma: F[A], mb: F[B])(f: (A, B) => C): F[C] =
-    flatMap(ma)(a => map(mb)(b => f(a, b)))
-
-  def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
-    a => flatMap(f(a))(g)
-
   def forever[A, B](a: F[A]): F[B] = {
     lazy val t: F[B] = forever(a)
     a.flatMap(_ => t)
@@ -44,6 +35,15 @@ trait Monad[F[_]] extends Applicative[F] {
     la.foldRight(unit(MyList.empty[A]))((x, y) =>
       compose(f, (b: Boolean) => if (b) map2(unit(x), y)(_ :: _) else y)(x)
     )
+
+  def map2[A, B, C](ma: F[A], mb: F[B])(f: (A, B) => C): F[C] =
+    flatMap(ma)(a => map(mb)(b => f(a, b)))
+
+  override def map[A, B](ma: F[A])(f: A => B): F[B] =
+    flatMap(ma)(a => unit(f(a)))
+
+  def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
+    a => flatMap(f(a))(g)
 
   implicit def toMonadic[A](a: F[A]): Monadic[F, A] =
     new Monadic[F, A] {
@@ -56,10 +56,9 @@ trait Monad[F[_]] extends Applicative[F] {
 trait Monadic[F[_], A] {
 
   val F: Monad[F]
+  private val a = get
 
   def get: F[A]
-
-  private val a = get
 
   def map[B](f: A => B): F[B] = F.map(a)(f)
 
@@ -115,6 +114,12 @@ object Monad {
     override def flatMap[A, B](ma: MyOption[A])(f: (A) => MyOption[B]): MyOption[B] = ma.flatMap(f)
 
   }
+  implicit val function0Monad = new Monad[Function0] {
+    def unit[A](a: => A) = () => a
+
+    def flatMap[A, B](a: Function0[A])(f: A => Function0[B]) =
+      () => f(a())()
+  }
 
   def parserMonad[P[+ _]](p: Parsers[P]) = new Monad[P] {
     def unit[A](a: => A) = p.succeed(a)
@@ -141,13 +146,6 @@ object Monad {
       MyRight(a)
   }
 
-  implicit val function0Monad = new Monad[Function0] {
-    def unit[A](a: => A) = () => a
-
-    def flatMap[A, B](a: Function0[A])(f: A => Function0[B]) =
-      () => f(a())()
-  }
-
   implicit def processMonad[I] =
     new Monad[({type λ[x] = Process[I, x]})#λ] {
       def unit[A](a: => A): Process[I, A] =
@@ -158,11 +156,29 @@ object Monad {
 
     }
 
+  def composeM[G[_], H[_]](implicit G: Monad[G], H: Monad[H], T: Traverse[H]): Monad[({type f[x] = G[H[x]]})#f] = new Monad[({type f[x] = G[H[x]]})#f] {
+
+    def unit[A](a: => A): G[H[A]] = G.unit(H.unit(a))
+
+    override def flatMap[A, B](gha: G[H[A]])(f: A => G[H[B]]): G[H[B]] = {
+      val result: G[H[B]] = G.flatMap(gha) {
+        (ha: H[A]) =>
+          val ghb: G[H[B]] = G.map {
+            val ghhb: G[H[H[B]]] = T.traverse(ha)(f)(G) // HHA -> HHB -> GHHB
+            ghhb
+          }(H.join)
+          ghb
+      }
+      result
+    }
+  }
+
 }
 
 trait MonadCatch[F[_]] extends Monad[F] {
 
   def attempt[A](a: F[A]): F[Either[Throwable, A]]
+
   def fail[A](t: Throwable): F[A]
 
 }

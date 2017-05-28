@@ -42,7 +42,7 @@ trait Applicative[F[_]] extends Functor[F] {
 
   def product[A, B](fa: F[A], fb: F[B]): F[(A, B)] =
     map2(fa, fb)((_, _))
-
+/*
   def traverseS[S, A, B](fa: F[A])(f: A => State[S, B]): State[S, F[B]] =
     traverse[({type f[x] = State[S, x]})#f, A, B](fa)(f)(Monad.stateMonad)
   
@@ -57,7 +57,7 @@ trait Applicative[F[_]] extends Functor[F] {
       as: List[A] <- State.get[List[A]]
       dummy: Unit <- State.set(a :: as)
     } yield ()).run(Nil)._2.reverse
-
+*/
 }
 
 object Applicative {
