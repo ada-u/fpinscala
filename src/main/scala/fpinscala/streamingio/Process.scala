@@ -1,15 +1,14 @@
 package fpinscala.streamingio
 
-import fpinscala.io.free.Free
 import fpinscala.io.free.Free.IO
 import fpinscala.monad.MonadCatch
 
-import scala.annotation.tailrec
+import scala.language.higherKinds
 
 trait Process[F[_], O] {
 
   import Process._
-/*
+
   def onHalt(f: Throwable => Process[F, O]): Process[F, O] = this match {
     case Halt(e) => Try(f(e))
     case Emit(h, t) => Emit(h, t.onHalt(f))
@@ -51,6 +50,7 @@ trait Process[F[_], O] {
           e => go(Try(receive(e)), acc)
         }
       }
+
     go(this, IndexedSeq())
   }
 
@@ -60,30 +60,9 @@ trait Process[F[_], O] {
     case Await(request, receive) => Await(request, receive.andThen(_.drain))
   }
 
-  def repeat: Process[F, O] = {
-    def go(p: Process[F, O]): Process[F, O] = p match {
-      case Halt() => go(this)
-      case Await(receive) => Await {
-        case None => receive(None)
-        case i => go(receive(i))
-      }
-      case Emit(h, t) => Emit(h, go(t))
-    }
-    go(this)
-  }
-
+  def repeat: Process[F,O] =
+    this ++ this.repeat
 }
-
-case class Await[F[_], A, O](request: F[A],
-                             receive: Either[Throwable, A] => Process[F, O])
-  extends Process[F, O]
-
-case class Emit[F[_], O](head: O,
-                         tail: Process[F, O])
-  extends Process[F, O]
-
-case class Halt[F[_], O](error: Throwable)
-  extends Process[F, O]
 
 case object End extends Exception
 
@@ -91,21 +70,35 @@ case object Kill extends Exception
 
 object Process {
 
-  def emit[I,O](head: O,
-                tail: Process[I,O]): Process[I,O] =
-    Emit(head, tail)
+  type Process1[I, O] = Process[Is[I]#f, O]
+
+  case class Await[F[_], A, O](req: F[A], recv: Either[Throwable, A] => Process[F, O]) extends Process[F, O]
+
+  case class Emit[F[_], O](head: O, tail: Process[F, O]) extends Process[F, O]
+
+  case class Halt[F[_], O](err: Throwable) extends Process[F, O]
 
   case class Is[I]() {
 
-    sealed trait f[X]
-
     val Get = new f[I] {}
+
+    sealed trait f[X]
 
   }
 
-  def Get[I] = Is[I]().Get
+  def emit1[I, O](h: O, tl: Process1[I, O] = halt1[I, O]): Process1[I, O] = emit(h, tl)
 
-  type Process1[I, O] = Process[Is[I]#f, O]
+  def await[F[_], A, O](request: F[A])
+                       (receive: Either[Throwable, A] => Process[F, O]): Process[F, O] =
+    Await[F, A, O](request, receive)
+
+  def lift[I, O](f: I => O): Process1[I, O] =
+    await1[I, O](i => emit(f(i))) repeat
+
+  def emit[F[_], O](
+                     head: O,
+                     tail: Process[F, O] = Halt[F, O](End)): Process[F, O] =
+    Emit(head, tail)
 
   def await1[I, O](receive: I => Process1[I, O],
                    fallback: Process1[I, O] = halt1[I, O]): Process1[I, O] =
@@ -115,24 +108,17 @@ object Process {
       case Right(i) => Try(receive(i))
     })
 
-  def emit1[I, O](h: O, tl: Process1[I, O] = halt1[I, O]): Process1[I, O] = emit(h, tl)
-
-  def halt1[I, O]: Process1[I, O] = Halt[Is[I]#f, O](End)
+  def Get[I] = Is[I]().Get
 
   def Try[F[_], O](p: => Process[F, O]): Process[F, O] =
     try p catch {
       case e: Throwable => Halt(e)
     }
 
-  def await[F[_], A, O](request: F[A])
-                       (receive: Either[Throwable, A] => Process[F, O]): Process[F, O] =
-    Await[F, A, O](request, receive)
+  def filter[I](f: I => Boolean): Process1[I, I] =
+    await1[I, I](i => if (f(i)) emit(i) else halt1) repeat
 
-  def lift[I,O](f: I => O): Process1[I,O] =
-    await1[I,O](i => emit(f(i))) repeat
-
-  def filter[I](f: I => Boolean): Process1[I,I] =
-    await1[I,I](i => if (f(i)) emit(i) else halt1) repeat
+  def halt1[I, O]: Process1[I, O] = Halt[Is[I]#f, O](End)
 
   def eval[F[_], A](a: F[A]): Process[F, A] =
     await[F, A, A](a) {
@@ -160,7 +146,9 @@ object Process {
       IO(io.Source.fromFile(filename))
     } { src =>
       lazy val iterator = src.getLines()
+
       def step = if (iterator.hasNext) Some(iterator.next()) else None
+
       lazy val lines: Process[IO, String] = eval[IO, Option[String]](IO(step)).flatMap {
         case None => Halt(End)
         case Some(line) => Emit(line, lines)
@@ -169,6 +157,7 @@ object Process {
     } { src =>
       eval_[IO, Unit, String](IO(src.close()))
     }
-*/
+
+
 }
 

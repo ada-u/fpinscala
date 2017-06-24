@@ -116,12 +116,13 @@ object Main extends App {
     *  def apply[S]: ST[S, A]
     * }
     */
-  val p3 = new RunnableST[STRef[Unit, Int]] {
+  // unrunnable
+  /*val p3 = new RunnableST[STRef[Nothing, Int]] {
     def apply[S] = {
-      val unrunnable: ST[Unit, STRef[Unit, Int]] = STRef(1)
+      val unrunnable: ST[S, STRef[S, Int]] = STRef.apply[S, Int](1)
       unrunnable
     }
-  }
+  }*/
 
   val p4: ST[Nothing, STRef[Nothing, Int]] = STRef(1)
 
