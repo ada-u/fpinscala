@@ -70,8 +70,6 @@ case object Kill extends Exception
 
 object Process {
 
-  type Process1[I, O] = Process[Is[I]#f, O]
-
   case class Await[F[_], A, O](req: F[A], recv: Either[Throwable, A] => Process[F, O]) extends Process[F, O]
 
   case class Emit[F[_], O](head: O, tail: Process[F, O]) extends Process[F, O]
@@ -85,6 +83,28 @@ object Process {
     sealed trait f[X]
 
   }
+
+  case class T[I,I2]() {
+    sealed trait f[X] {
+      def get: Either[I => X, I2 => X]
+    }
+    val L = new f[I] {
+      def get = Left(identity)
+    }
+    val R = new f[I2] {
+      def get = Right(identity)
+    }
+  }
+
+  def L[I,I2] = T[I,I2]().L
+
+  def R[I,I2] = T[I,I2]().R
+
+  type Process1[I, O] = Process[Is[I]#f, O]
+
+  type Sink[F[_], O] = Process[F, O => Process[F, Unit]]
+
+  type Tee[I, I2, O] = Process[T[I, I2]#f, O]
 
   def emit1[I, O](h: O, tl: Process1[I, O] = halt1[I, O]): Process1[I, O] = emit(h, tl)
 
