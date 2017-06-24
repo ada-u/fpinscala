@@ -1,9 +1,11 @@
 package fpinscala.streamingio
 
+import java.io.FileWriter
+
 import fpinscala.io.free.Free.IO
 import fpinscala.monad.MonadCatch
 
-import scala.language.higherKinds
+import scala.language.{higherKinds, postfixOps}
 
 trait Process[F[_], O] {
 
@@ -52,6 +54,83 @@ trait Process[F[_], O] {
       }
 
     go(this, IndexedSeq())
+  }
+
+  @annotation.tailrec
+  final def kill[O2]: Process[F,O2] = this match {
+    case Await(_, recv) => recv(Left(Kill)).drain.onHalt {
+      case Kill => Halt(End) // we convert the `Kill` exception back to normal termination
+      case e => Halt(e)
+    }
+    case Halt(e) => Halt(e)
+    case Emit(_, t) => t.kill
+  }
+
+  def tee[O2, O3](p2: Process[F, O2])(t: Tee[O, O2, O3]): Process[F,O3] = {
+    t match {
+      case Halt(e) => this.kill onComplete p2.kill onComplete Halt(e)
+      case Emit(h, t) => Emit(h, (this tee p2)(t))
+      case Await(side, recv) => side.get match {
+        case Left(isO) => this match {
+          case Halt(e) => p2.kill onComplete Halt(e)
+          case Emit(o,ot) => (ot tee p2)(Try(recv(Right(o))))
+          case Await(reqL, recvL) =>
+            await(reqL)(recvL andThen (this2 => this2.tee(p2)(t)))
+        }
+        case Right(isO2) => p2 match {
+          case Halt(e) => this.kill onComplete Halt(e)
+          case Emit(o2, ot) => (this tee ot)(Try(recv(Right(o2))))
+          case Await(reqR, recvR) =>
+            await(reqR)(recvR andThen (p3 => this.tee(p3)(t)))
+        }
+      }
+    }
+  }
+
+  def zipWith[O2, O3](p2: Process[F, O2])(f: (O, O2) => O3): Process[F, O3] =
+    (this tee p2)(Process.zipWith(f))
+
+  def to[O2](sink: Sink[F, O]): Process[F, Unit] =
+    join[F, Unit] {
+      // Process[F, Process[F, Unit]]
+      (this zipWith sink)((o: O, f: O => Process[F, Unit]) => f(o))
+    }
+
+  def through[O2](channel: Channel[F, O, O2]): Process[F, O2] =
+    join[F, O2] {
+      // Process[F, Process[F, O2]]
+      (this zipWith channel)((o: O, f: O => Process[F, O2]) => f(o))
+    }
+
+  def |>[O2](p2: Process1[O,O2]): Process[F,O2] = {
+    p2 match {
+      case Halt(e) => this.kill onHalt { e2 => Halt(e) ++ Halt(e2) }
+      case Emit(h, t) => Emit(h, this |> t)
+      case Await(req,recv) => this match {
+        case Halt(err) => Halt(err) |> recv(Left(err))
+        case Emit(h,t) => t |> Try(recv(Right(h)))
+        case Await(req0,recv0) => await(req0)(recv0 andThen (_ |> p2))
+      }
+    }
+  }
+
+  def take(n: Int): Process[F,O] =
+    this |> Process.take(n)
+
+  def once: Process[F,O] =
+    take(1)
+
+  def pipe[O2](p2: Process1[O,O2]): Process[F,O2] =
+    this |> p2
+
+  def filter(f: O => Boolean): Process[F,O] =
+    this |> Process.filter(f)
+
+  def map[O2](f: O => O2): Process[F,O2] = this match {
+    case Await(req,recv) =>
+      Await(req, recv andThen (_ map f))
+    case Emit(h, t) => Try { Emit(f(h), t map f) }
+    case Halt(err) => Halt(err)
   }
 
   final def drain[O2]: Process[F, O2] = this match {
@@ -103,6 +182,8 @@ object Process {
   type Process1[I, O] = Process[Is[I]#f, O]
 
   type Sink[F[_], O] = Process[F, O => Process[F, Unit]]
+
+  type Channel[F[_],I,O] = Process[F, I => Process[F, O]]
 
   type Tee[I, I2, O] = Process[T[I, I2]#f, O]
 
@@ -178,6 +259,61 @@ object Process {
       eval_[IO, Unit, String](IO(src.close()))
     }
 
+  def fileW(file: String, append: Boolean = false): Sink[IO,String] =
+    resource[FileWriter, String => Process[IO, Unit]]
+      { IO { new FileWriter(file, append) } }
+      { (w: FileWriter) =>
+        constant {
+          (s: String) => eval[IO, Unit](IO(w.write(s)))
+        }
+      }
+      { w => eval_(IO(w.close())) }
+
+  def haltT[I,I2,O]: Tee[I,I2,O] =
+    Halt[T[I,I2]#f,O](End)
+
+  def awaitL[I,I2,O](recv: I => Tee[I,I2,O],
+                     fallback: => Tee[I,I2,O] = haltT[I,I2,O]): Tee[I,I2,O] =
+    await[T[I,I2]#f,I,O](L) {
+      case Left(End) => fallback
+      case Left(err) => Halt(err)
+      case Right(a) => Try(recv(a))
+    }
+
+  def awaitR[I,I2,O](recv: I2 => Tee[I,I2,O],
+                     fallback: => Tee[I,I2,O] = haltT[I,I2,O]): Tee[I,I2,O] =
+    await[T[I,I2]#f,I2,O](R) {
+      case Left(End) => fallback
+      case Left(err) => Halt(err)
+      case Right(a) => Try(recv(a))
+    }
+
+  def emitT[I,I2,O](h: O, tl: Tee[I,I2,O] = haltT[I,I2,O]): Tee[I,I2,O] =
+    emit(h, tl)
+
+  def zipWith[I, I2, O](f: (I, I2) => O): Tee[I, I2, O] =
+    awaitL[I, I2, O](i  =>
+      awaitR(i2 => emitT(f(i, i2)))) repeat
+
+  def constant[A](a: A): Process[IO, A] =
+    eval[IO, A](IO(a)).repeat
+
+  def join[F[_],A](p: Process[F, Process[F, A]]): Process[F, A] =
+    p.flatMap(pa => pa)
+
+  def id[I]: Process1[I, I] =
+    await1[I, I]((i: I) => emit(i, id))
+
+  def intersperse[I](sep: I): Process1[I, I] =
+    await1[I, I] { i: I =>
+      emit1[I, I](i) ++ id.flatMap[I] { i: I =>
+        emit1[I, I](sep) ++ emit1[I, I](i)
+      }
+    }
+
+  def take[I](n: Int): Process1[I,I] =
+    if (n <= 0) halt1
+    else await1[I, I](i => emit(i, take(n-1)))
 
 }
 

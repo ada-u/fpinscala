@@ -113,7 +113,7 @@ object Main extends App {
 
   /**
     * trait RunnableST[A] {
-    *  def apply[S]: ST[S, A]
+    * def apply[S]: ST[S, A]
     * }
     */
   // unrunnable
@@ -229,6 +229,43 @@ object Main extends App {
       }
       println(debugRun(g(42)))
     }
+  }
+
+  object StreamingIO {
+
+    import fpinscala.io.free.Free.IO
+    import fpinscala.streamingio.Process._
+    import fpinscala.streamingio._
+
+    val converter: Process[IO, Unit] =
+      lines("fahrenheit.txt").
+        filter(!_.startsWith("#")).
+        map(line => fahrenheitToCelsius(line.toDouble).toString).pipe(intersperse("¥n")).
+        to(fileW("celsius.txt")).drain
+
+    val convertAll: Process[IO, Unit] =
+      (for {
+        out <- fileW("celsius.txt").once
+        file <- lines("fahrenheits.txt")
+        _ <- lines(file)
+          .map(line => fahrenheitToCelsius(line.toDouble))
+          .flatMap(celsius => out(celsius.toString))
+      } yield ()).drain
+
+    val convertMultiSink: Process[IO, Unit] =
+      (for {
+        file <- lines("fahrenheits.txt")
+        _ <- lines(file)
+          .map(line => fahrenheitToCelsius(line.toDouble)).map(_.toString)
+          .to(fileW(file + ".celsius"))
+      } yield ()).drain
+
+    import java.sql.{Connection, PreparedStatement}
+
+    def fahrenheitToCelsius(f: Double): Double = (f - 32) * 5.0 / 9.0
+
+    def query(conn: IO[Connection]): Channel[IO, Connection => PreparedStatement, Map[String, Any]] = ???
+
   }
 
 
