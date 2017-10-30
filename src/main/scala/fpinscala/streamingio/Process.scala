@@ -102,7 +102,7 @@ trait Process[F[_], O] {
       (this zipWith channel)((o: O, f: O => Process[F, O2]) => f(o))
     }
 
-  def |>[O2](p2: Process1[O,O2]): Process[F,O2] = {
+  def |>[O2](p2: Process1[O, O2]): Process[F, O2] = {
     p2 match {
       case Halt(e) => this.kill onHalt { e2 => Halt(e) ++ Halt(e2) }
       case Emit(h, t) => Emit(h, this |> t)
